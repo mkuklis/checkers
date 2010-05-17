@@ -1,7 +1,7 @@
 var http = require('http'), 
 		url = require('url'),
 		fs = require('fs'),
-		io = require('../server/socket.io'),
+		io = require('./server/socket.io'),
 		sys = require('sys'),
 		
 send404 = function(res){
@@ -16,7 +16,7 @@ server = http.createServer(function(req, res){
 	switch (path){
 		case '/':
 			res.writeHead(200, {'Content-Type': 'text/html'});
-			res.write('<h1>Welcome. Try the <a href="/index.html">checker</a> example.</h1>');
+			res.write('<h1>Welcome. Try the <a href="/index.html">checkers</a> example.</h1>');
 			res.end();
 			break;
 			
@@ -32,7 +32,7 @@ server = http.createServer(function(req, res){
 				}				
 				break;
 			}
-		
+	
 			send404(res);
 			break;
 	}
@@ -55,8 +55,7 @@ io.listen(server, {
 	
 	onClientMessage: function(message, client){
 		var msg = { message: [client.sessionId, message] };
-		//buffer.push(msg);
-		//if (buffer.length > 15) buffer.shift();
+    //sys.puts(msg);
 		client.broadcast(json(msg));
 	}
 	
