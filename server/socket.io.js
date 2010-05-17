@@ -1,4 +1,3 @@
-sys.puts(__dirname);
 require.paths.unshift('./vendor/js-oo/lib');
 require('oo');
 
