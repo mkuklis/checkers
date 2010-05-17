@@ -133,7 +133,7 @@ function Checkers(board) {
 		var self = this;
 
 		this.COLORS = {"true":"black", "false":"white"};
-
+    // TODO fix it
 		this.color = self.COLORS[x < 2];
     this.square = null; // square object the checker belongs to
 
@@ -205,6 +205,7 @@ function Checkers(board) {
 		if (square.y % 2 === square.x % 2 
       && (square.x < 2 || square.x > 5)) {
 			var checker = new Checker(square.x, square.y);
+      // wired up checker with square
 			checker.belongsTo(square);
 			square.hasOne(checker);
 		}
@@ -230,8 +231,8 @@ function Checkers(board) {
   var processData = function(obj) {
     if (obj != undefined 
       && obj.message != undefined) {
-      var square = getSquare(obj.message[1].newpos);
-      var checker = getChecker(obj.message[1].oldpos);
+      var square = getSquare(obj.message[1].n);
+      var checker = getChecker(obj.message[1].o);
       checker.makeMove(square);
       setNextTurn();
     }
