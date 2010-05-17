@@ -1,47 +1,60 @@
 // TODO add change sites, add communication
 function Checkers(board) {
-	var self = this; // reference helper
-	this.BOARD_SIZE = 8;      
+    	
+  var self = this; // reference helper  
+
+  // events constants
+  this.EVENT_DATA_RECEIVED = "dataReceivedEvent"; 
+  this.BOARD_SIZE = 8;      
   this.TURNS = ["white", "black"];
 
 	this.$board = $("#" + board); // game board
 	this.currentChecker = null;
   this.currentTurn = self.TURNS[0];
   
-  // public
-  self.processMessage = function(obj) {
-    if (obj != undefined 
-      && obj.message != undefined) {
-      var square = getSquare(obj.message[1].newpos);
-      var checker = getChecker(obj.message[1].oldpos);
-      checker.makeMove(square);
-      setNextTurn();
-    }
-  }
+  // pub/sub utils
+  var PubSubUtils = {
+    subs: [],
+   
+    subscribe: function(event, action){
+      if (this.subs[event] == undefined) {
+        this.subs[event] = action;
+      }
+      else {
+        this.subs[event] = $.grep(this.subs[event], function(n){
+          // TODO is this good enough?
+          //return n.selector != element.selector;
+        });
+        this.subs[event].push(action);
+      }
+    },
 
-  // socketUtils constructor
-  //function SocketUtils() {
-    io.setPath('/client/');
-    var socket = new io.Socket('localhost', {rememberTransport: false, port: 8080});
-    
-    function connect(callback) {
+    publish: function(event, params) {
+      var self = this;
+      $.each(this.subs[event], function(index, action){
+        self.subs[event][index](params);
+      });
+    }
+  };
+
+  // socket utils
+  var SocketUtils = {
+    socket: null,
+
+    connect: function(callback) {
+      io.setPath('/client/');
+      socket = new io.Socket('localhost', {rememberTransport: false, port: 8080});
       socket.connect();
       socket.addEvent('message', function(data){
         var obj = JSON.parse(data);
-        if (callback) {
-          callback(obj);        
-        }
+        PubSubUtils.publish(self.EVENT_DATA_RECEIVED, [obj]);
       });
-    }
+    },
 
-    function send(message) {
+    send: function(message) {
       socket.send(message);
     }
-    console.log(self.processMessage);
-    connect(self.processMessage);
-  //}
-
-  //self.socketUtil = new SocketUtils();
+  };
 
 	// Square constructor
 	function Square(x, y) {
@@ -85,6 +98,34 @@ function Checkers(board) {
     this.isHighlighted = function() {
        return self.$square.hasClass('square_highlighted');
     }
+
+    this.getPosition = function() {
+      return {"x": self.x, "y": self.y};
+    }
+
+    // TODO: add queen/remove
+		this.getPossibleMoves = function() {
+			var moves = [];
+			var positions = getMovesPositions();
+			if (self.checker.isBlack()) {
+				moves.push(positions.br);
+				moves.push(positions.tr);
+			}
+			else {
+				moves.push(positions.tl);
+				moves.push(positions.bl);
+			}
+			return moves;
+		}
+
+    // private
+		function getMovesPositions() {
+			return {
+				'br':{'x': self.x + 1, 'y': self.y + 1}, 
+			  'bl':{'x': self.x - 1, 'y': self.y + 1}, 
+				'tr':{'x': self.x + 1, 'y': self.y - 1}, 
+				'tl':{'x': self.x - 1, 'y': self.y - 1}};
+		}
   }
 
 	// Checker constructor
@@ -92,25 +133,20 @@ function Checkers(board) {
 		var self = this;
 
 		this.COLORS = {"true":"black", "false":"white"};
-		this.x = x;
-		this.y = y; 
-		this.id = "checker_" + self.x + "_" + self.y;
-		this.color = self.COLORS[self.x < 2];
-		this.position = {"x": self.x, "y": self.y};
+
+		this.color = self.COLORS[x < 2];
     this.square = null; // square object the checker belongs to
 
 		// create jquery object
-		this.$checker = $('<div id="' + self.id + '" class="checker ' + self.color + '"></div>')
-			.data("checker", self)
+    this.$checker = $('<div class="checker ' + self.color + '"></div>')	  
+    	  .data("checker", self)
 
     // public
 
 		this.belongsTo = function(square) {
 			self.square = square;
 			// wires up jquery object
-			self.$checker.appendTo(square.$square);
-      // change id
-      self.$checker.attr('id', "checker_" + square.x + "_" + square.y);      
+			self.$checker.appendTo(square.$square);      
 		}
 
 		this.isBlack = function() {
@@ -125,21 +161,19 @@ function Checkers(board) {
       return self.color == turn;
     }
 
-		// TODO: add queen/remove
-		this.getPossibleMoves = function() {
-			var moves = [];
-
-			var positions = getMovesPositions();
-			if (self.isBlack()) {
-				moves.push(positions.br);
-				moves.push(positions.tr);
-			}
-			else {
-				moves.push(positions.tl);
-				moves.push(positions.bl);
-			}
-			return moves;
-		}
+    this.getPosition = function() {
+      return self.square.getPosition();
+    }
+    
+    // checkes if selected checker can move
+    this.isMovePossible = function(currentChecker, currentTurn) {   
+      if (self.isActiveTurn(currentTurn) 
+        && (currentChecker == null 
+        || currentChecker != self)) {   
+        return true;
+      }
+      return false;
+    }
 
 		// makes move
 		this.makeMove = function(square) {
@@ -150,17 +184,6 @@ function Checkers(board) {
 			// set link between square and checker
 			self.belongsTo(square);
 			square.hasOne(self);
-    
-		}
-
-		// private
-
-		function getMovesPositions() {
-			return {
-				'br':{'x': self.x + 1, 'y': self.y + 1}, 
-			  'bl':{'x': self.x - 1, 'y': self.y + 1}, 
-				'tr':{'x': self.x + 1, 'y': self.y - 1}, 
-				'tl':{'x': self.x - 1, 'y': self.y - 1}};
 		}
 	}
 
@@ -189,12 +212,13 @@ function Checkers(board) {
 
 	// shows possible moves
 	function showPossibleMoves($checker) {
-		var c = $checker.data("checker");
-		var moves = c.getPossibleMoves();
+		var square = $checker.data("checker").square;
+		var moves = square.getPossibleMoves();
+
 		$.each(moves, function(i, v){
-		  var square = getSquare(v);
-			if (square != null && square.isEmpty()) {
-			  square.highlight();
+		  var s = getSquare(v);
+			if (s != null && s.isEmpty()) {
+			  s.highlight();
 			}
 		});
 	}
@@ -203,34 +227,41 @@ function Checkers(board) {
     self.currentTurn = (self.currentTurn == self.TURNS[0]) ? self.TURNS[1] : self.TURNS[0];
   }
 
-	drawGrid();
-  
+  var processData = function(obj) {
+    if (obj != undefined 
+      && obj.message != undefined) {
+      var square = getSquare(obj.message[1].newpos);
+      var checker = getChecker(obj.message[1].oldpos);
+      checker.makeMove(square);
+      setNextTurn();
+    }
+  }
 
 	// register events
-
+ 
 	// TODO use publish / subcribe
-	$('.checker').mouseover(function(){
+	$('.checker').live("mouseover", function() {
+    var checker = $(this).data("checker");
 	  if (self.currentChecker == null 
-      && $(this).data("checker").isActiveTurn(self.currentTurn)) {
+      && checker.isActiveTurn(self.currentTurn)) {
 		  showPossibleMoves($(this));
 		}
 	});
 
-	$('.checker').mouseout(function(){
+	$('.checker').live("mouseout", function(){
 	  if (self.currentChecker == null) {
 		  $('.square').removeClass('square_highlighted');
 		}
 	});
 
-	$('.checker').click(function(e){
+	$('.checker').live("click", function(e){
 		var checker = $(this).data("checker");
-		if (self.currentChecker == null 
-      || self.currentChecker != checker) {          
-		  $('.square').removeClass('square_highlighted');
-		  showPossibleMoves($(this));
-			checker.square.highlight();
+    if (checker.isMovePossible(self.currentChecker, self.currentTurn)) {         
+      $('.square').removeClass('square_highlighted');
+		  checker.square.highlight();			
+      showPossibleMoves($(this));
 			self.currentChecker = checker;
-		}
+    }
 		else {
 			self.currentChecker = null;
 			checker.square.unHighlight();     
@@ -238,23 +269,16 @@ function Checkers(board) {
     return false; // stop bubbling
 	});
 
-	$('.square').click(function(){
+	$('.square').live("click", function(){
     var square = $(this).data('square');
 	  if (self.currentChecker != null 
       && square.isHighlighted()) {
 
-      // send data
-//      self.socketUtil.
-      send({"newpos":{"x": square.x, "y": square.y}, "oldpos":{"x":self.currentChecker.x, "y": self.currentChecker.y}});
-
-
+      SocketUtils.send({"n":{"x": square.x, "y": square.y}, "o":{"x":self.currentChecker.x, "y": self.currentChecker.y}});
 		  self.currentChecker.makeMove(square);
-      
-
       setNextTurn();
 			self.currentChecker = null;
 			$('.square').removeClass('square_highlighted');
-
 		}
 	});
 
@@ -264,11 +288,15 @@ function Checkers(board) {
 	}
   
   function getChecker(position) {
-		return $("#checker_" + position.x + "_" + position.y).data('checker'); 
+		return getSquare().checker;
 	}
+
+  drawGrid();
+  // subscribe elements 
+  PubSubUtils.subscribe(self.EVENT_DATA_RECEIVED, processData);
+  SocketUtils.connect(self.processData);
 }    
 
 Checkers.init = function(board) {
 	window.checkers = new Checkers(board);
 }
-
