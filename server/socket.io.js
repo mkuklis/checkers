@@ -1,7 +1,4 @@
-sys = require('sys')
-sys.puts(__dirname);
-require.paths.unshift(__dirname + '/vendor/js-oo/lib');
-require('oo');
+require('./vendor/js-oo/lib/oo');
 
 var sys = require('sys'),
 	Listener = require('./socket.io/listener').Listener;
