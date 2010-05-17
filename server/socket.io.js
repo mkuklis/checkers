@@ -1,4 +1,4 @@
-require.paths.unshift('./vendor/js-oo/lib');
+require.paths.unshift('./js-oo/lib');
 require('oo');
 
 var sys = require('sys'),
