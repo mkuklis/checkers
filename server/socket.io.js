@@ -1,4 +1,6 @@
-require.paths.unshift('./js-oo/lib');
+sys = require('sys')
+sys.puts(__dirname);
+require.paths.unshift(__dirname + '/vendor/js-oo/lib');
 require('oo');
 
 var sys = require('sys'),
