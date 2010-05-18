@@ -37,7 +37,7 @@ function Checkers(board) {
 
     connect: function (callback) {
       io.setPath('/client/');
-      socket = new io.Socket('http://checkers.heroku.com', {
+      socket = new io.Socket('localhost', {
         rememberTransport: false,
         port: 8080
       });
