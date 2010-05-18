@@ -240,13 +240,8 @@ function Checkers(board) {
     
     $.each(moves, function (i, v) {
       var s = getSquare(v);
-      if (s != null) {
-        if (s.isEmpty()) { // square is empty
+      if (s != null && s.isEmpty()) {
           s.highlight();    
-        }
-        else { // square is not empty
-          
-        }  
       }
     });
   }
