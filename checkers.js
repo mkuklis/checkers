@@ -54,7 +54,6 @@ function Checkers(board) {
   };
 
   // Square constructor
-
   function Square(x, y) {
     var self = this;
 
@@ -66,13 +65,23 @@ function Checkers(board) {
     this.color = self.COLORS[x % 2 === y % 2];
     this.x = x;
     this.y = y;
+
     this.position = {
       "x": self.x,
       "y": self.y
     };
+
+    this.positions = 
+      { 'br': { 'x': 1, 'y': 1 },
+        'bl': { 'x': -1, 'y': 1 },
+        'tr': { 'x': 1, 'y': -1 },
+        'tl': { 'x': -1, 'y': -1 }};
+
     this.checker = null; // checker
+
     // set jquery object
-    this.$square = $('<div id="' + self.id + '" class="square ' + self.color + '"> </div>').data("square", self);
+    this.$square = $('<div id="' + self.id + '" class="square ' + self.color + '"> </div>')
+      .data("square", self);
 
     // checks if square is empty
     this.isEmpty = function () {
@@ -102,48 +111,41 @@ function Checkers(board) {
     }
 
     this.getPosition = function () {
-      return {
-        "x": self.x,
-        "y": self.y
-      };
+      return self.position;
     }
 
     // TODO: add queen/remove
     this.getPossibleMoves = function () {
       var moves = [];
-      var positions = getMovesPositions();
       if (self.checker.isBlack()) {
-        moves.push(positions.br);
-        moves.push(positions.tr);
+        moves.push(getPossiblePosition(self.positions.br));
+        moves.push(getPossiblePosition(self.positions.tr));
       }
       else {
-        moves.push(positions.tl);
-        moves.push(positions.bl);
+        moves.push(getPossiblePosition(self.positions.tl));
+        moves.push(getPossiblePosition(self.positions.bl));
       }
       return moves;
     }
+    
+    // private 
 
-    // private
-
-    function getMovesPositions() {
-      return {
-        'br': {
-          'x': self.x + 1,
-          'y': self.y + 1
-        },
-        'bl': {
-          'x': self.x - 1,
-          'y': self.y + 1
-        },
-        'tr': {
-          'x': self.x + 1,
-          'y': self.y - 1
-        },
-        'tl': {
-          'x': self.x - 1,
-          'y': self.y - 1
+    function getPossiblePosition(position) {
+      var s = getSquare(calculatePosition(position, 1));
+      if (s != undefined) { 
+        if (s.isEmpty()) {
+          return calculatePosition(position, 1); 
         }
-      };
+        else {
+          return calculatePosition(position, 2);
+        }    
+      }    
+    }
+    
+    function calculatePosition (position, value) {
+      return {
+        "x": position.x * value + self.x, 
+        "y": position.y * value + self.y};
     }
   }
 
@@ -156,6 +158,7 @@ function Checkers(board) {
       "true": "black",
       "false": "white"
     };
+
     // TODO fix it
     this.color = self.COLORS[x < 2];
     this.square = null; // square object the checker belongs to
@@ -187,7 +190,9 @@ function Checkers(board) {
 
     // checkes if selected checker can move
     this.isMovePossible = function (currentChecker, currentTurn) {
-      if (self.isActiveTurn(currentTurn) && (currentChecker == null || currentChecker != self)) {
+      if (self.isActiveTurn(currentTurn) 
+        && (currentChecker == null 
+        || currentChecker != self)) {
         return true;
       }
       return false;
@@ -206,8 +211,8 @@ function Checkers(board) {
   }
 
   // private
-  // draws game grid
 
+  // draws game grid
   function drawGrid() {
     for (var i = 0; i < self.BOARD_SIZE; i++) {
       for (var j = 0; j < self.BOARD_SIZE; j++) {
@@ -219,7 +224,6 @@ function Checkers(board) {
   }
 
   // draws checker on the grid
-
   function drawChecker(square) {
     if (square.y % 2 === square.x % 2 && (square.x < 2 || square.x > 5)) {
       var checker = new Checker(square.x, square.y);
@@ -230,15 +234,19 @@ function Checkers(board) {
   }
 
   // shows possible moves
-
   function showPossibleMoves($checker) {
     var square = $checker.data("checker").square;
     var moves = square.getPossibleMoves();
-
+    
     $.each(moves, function (i, v) {
       var s = getSquare(v);
-      if (s != null && s.isEmpty()) {
-        s.highlight();
+      if (s != null) {
+        if (s.isEmpty()) { // square is empty
+          s.highlight();    
+        }
+        else { // square is not empty
+          
+        }  
       }
     });
   }
@@ -248,12 +256,9 @@ function Checkers(board) {
   }
 
   var processData = function (obj) {
-
     if (obj != undefined && obj.message != undefined) {
-
       var square = getSquare(obj.message[1].n);
       var checker = getChecker(obj.message[1].o);
-
       checker.makeMove(square);
       setNextTurn();
     }
@@ -309,7 +314,12 @@ function Checkers(board) {
   // helpers
 
   function getSquare(position) {
-    return $("#square_" + position.x + "_" + position.y).data('square');
+    if (position != undefined) {
+      return $("#square_" + position.x + "_" + position.y).data('square');
+    }
+    else {
+      return null;    
+    }
   }
 
   function getChecker(position) {
