@@ -11,7 +11,7 @@ Listener = this.Listener = Class({
 	options: {
 		origins: '*:*',
 		resource: 'socket.io',
-		transports: ['websocket', 'flashsocket', 'htmlfile', 'xhr-multipart', 'xhr-polling'],
+		transports: ['htmlfile', 'xhr-multipart', 'xhr-polling'],
 		timeout: 8000,
 		log: function(message){
 			sys.log(message);
