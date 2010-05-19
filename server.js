@@ -1,7 +1,12 @@
-var http = require('http'),
-    port = process.env.PORT || 8001
+var http = require('http'), 
+    io = require('./server/socket.io/socket.io.js'),
 
-http.createServer(function (req, res) {
-  res.writeHead(200, {'Content-Type': 'text/plain'})
-  res.end('Hello World\n')
-}).listen(parseInt(port))
+server = http.createServer(function(req, res){
+    // your normal server code
+    res.writeHeader(200, {'Content-Type': 'text/html'});
+    res.writeBody('<h1>Hello world</h1>');
+    res.finish();
+});
+
+// socket.io, I choose you
+io.listen(server);
