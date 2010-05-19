@@ -1,5 +1,5 @@
 var http = require('http'), 
-    io = require('./server/socket.io/socket.io.js'),
+    io = require('./server/socket.io/socket.io'),
 
 server = http.createServer(function(req, res){
     // your normal server code
