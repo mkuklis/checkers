@@ -71,7 +71,7 @@ function Checkers(board) {
       "y": self.y
     };
 
-    this.positions = 
+    this.moves = 
       { 'br': { 'x': 1, 'y': 1 },
         'bl': { 'x': -1, 'y': 1 },
         'tr': { 'x': 1, 'y': -1 },
@@ -84,8 +84,8 @@ function Checkers(board) {
       .data("square", self);
 
     // checks if square is empty
-    this.isEmpty = function () {
-      return self.checker == null;
+    this.hasChecker = function () {
+      return self.checker != null;
     }
 
     // removes checker from the square
@@ -114,38 +114,68 @@ function Checkers(board) {
       return self.position;
     }
 
+
+    // checks if bite move is available 
+    // returns position of the checker to bite
+    // TODO: this is fucking ugly find some better way
+    this.isBiteMove = function(startPos, endPos) {
+      if (Math.abs(startPos.x - endPos.x) == 2) {
+        if (startPos.x > endPos.x && startPos.y > endPos.y) {
+          return calculatePosition(self.moves.br, 1, endPos);
+        }
+        else if (startPos.x < endPos.x && startPos.y > endPos.y) {
+          return calculatePosition(self.moves.bl, 1, endPos);          
+        }
+        else if (startPos.x < endPos.x && startPos.y < endPos.y) {
+          return calculatePosition(self.moves.tl, 1, endPos); 
+        }
+        else if (startPos.x > endPos.x && startPos.y < endPos.y) {
+          return calculatePosition(self.moves.tr, 1, endPos);
+        }
+      }
+      return null;
+    }
+
     // TODO: add queen/remove
     this.getPossibleMoves = function () {
       var moves = [];
-      if (self.checker.isBlack()) {
-        moves.push(getPossiblePosition(self.positions.br));
-        moves.push(getPossiblePosition(self.positions.tr));
+      if (self.checker.isBlack()) { 
+        moves = getPossiblePosition(self.moves.br, moves);
+        moves = getPossiblePosition(self.moves.tr, moves);
       }
-      else {
-        moves.push(getPossiblePosition(self.positions.tl));
-        moves.push(getPossiblePosition(self.positions.bl));
+      else {  
+        moves = getPossiblePosition(self.moves.tl, moves);
+        moves = getPossiblePosition(self.moves.bl, moves);
       }
       return moves;
     }
     
     // private 
 
-    function getPossiblePosition(position) {
-      var s = getSquare(calculatePosition(position, 1));
+    function getPossiblePosition(move, moves) {
+      var newPos = calculatePosition(move, 1, self.getPosition());
+      var s = getSquare(newPos);
       if (s != undefined) { 
-        if (s.isEmpty()) {
-          return calculatePosition(position, 1); 
+        if (!s.hasChecker()) {
+          moves.push(newPos);
         }
         else {
-          return calculatePosition(position, 2);
+          var s = getSquare(newPos);
+          // make sure checker has different color
+          if(self.checker.isWhite() != s.checker.isWhite()) {
+            moves.push(calculatePosition(move, 2, self.getPosition()));
+          }          
         }    
-      }    
+      }
+      return moves;
     }
     
-    function calculatePosition (position, value) {
+    // calculates new position
+    // TODO: WTF is value? describe it better 
+    function calculatePosition(move, value, position) {
       return {
-        "x": position.x * value + self.x, 
-        "y": position.y * value + self.y};
+        "x": move.x * value + position.x, 
+        "y": move.y * value + position.y };
     }
   }
 
@@ -160,7 +190,7 @@ function Checkers(board) {
     };
 
     // TODO fix it
-    this.color = self.COLORS[x < 2];
+    this.color = self.COLORS[x < 3];
     this.square = null; // square object the checker belongs to
     // create jquery object
     this.$checker = $('<div class="checker ' + self.color + '"></div>').data("checker", self)
@@ -199,7 +229,7 @@ function Checkers(board) {
     }
 
     // makes move
-    this.makeMove = function (square) {
+    this.moveTo = function (square) {
       self.x = square.x;
       self.y = square.y;
       // remove checker from current square
@@ -207,6 +237,7 @@ function Checkers(board) {
       // set link between square and checker
       self.belongsTo(square);
       square.hasOne(self);
+      //
     }
   }
 
@@ -225,7 +256,7 @@ function Checkers(board) {
 
   // draws checker on the grid
   function drawChecker(square) {
-    if (square.y % 2 === square.x % 2 && (square.x < 2 || square.x > 5)) {
+    if (square.y % 2 === square.x % 2 && (square.x < 3 || square.x > 4)) {
       var checker = new Checker(square.x, square.y);
       // wired up checker with square
       checker.belongsTo(square);
@@ -240,8 +271,8 @@ function Checkers(board) {
     
     $.each(moves, function (i, v) {
       var s = getSquare(v);
-      if (s != null && s.isEmpty()) {
-          s.highlight();    
+      if (s != null && !s.hasChecker()) {
+        s.highlight();    
       }
     });
   }
@@ -254,7 +285,7 @@ function Checkers(board) {
     if (obj != undefined && obj.message != undefined) {
       var square = getSquare(obj.message[1].n);
       var checker = getChecker(obj.message[1].o);
-      checker.makeMove(square);
+      checker.moveTo(square);
       setNextTurn();
     }
   }
@@ -263,7 +294,8 @@ function Checkers(board) {
   // TODO use publish / subcribe
   $('.checker').live("mouseover", function () {
     var checker = $(this).data("checker");
-    if (self.currentChecker == null && checker.isActiveTurn(self.currentTurn)) {
+    if (self.currentChecker == null 
+      && checker.isActiveTurn(self.currentTurn)) {
       showPossibleMoves($(this));
     }
   });
@@ -291,6 +323,9 @@ function Checkers(board) {
 
   $('.square').live("click", function () {
     var square = $(this).data('square');
+
+    // TODO use pub/sub for all things here
+
     if (self.currentChecker != null && square.isHighlighted()) {
       // message
       var m = {
@@ -298,8 +333,18 @@ function Checkers(board) {
         "o": self.currentChecker.getPosition()
       };
 
+      var p = square.isBiteMove(self.currentChecker.getPosition(), square.getPosition());
+      
+      if (p != null) {
+          // square with checker to remove
+          var s = getSquare(p);
+          s.checker.$checker.remove();
+          s.removeChecker();
+      }
+
       SocketUtils.send(m);
-      self.currentChecker.makeMove(square);
+    
+      self.currentChecker.moveTo(square);
       setNextTurn();
       self.currentChecker = null;
       $('.square').removeClass('square_highlighted');
@@ -308,17 +353,29 @@ function Checkers(board) {
 
   // helpers
 
+  // TODO clean up
+
+
   function getSquare(position) {
-    if (position != undefined) {
-      return $("#square_" + position.x + "_" + position.y).data('square');
-    }
-    else {
-      return null;    
-    }
+    // if (!isPositionOnBoard(position)) return null;    
+    return $("#square_" + position.x + "_" + position.y).data('square');
   }
 
   function getChecker(position) {
     return getSquare(position).checker;
+  }
+
+  function isPositionOnBoard(position) {
+    if (position == null 
+      || position.x < 0 
+      || position.y < 0 
+      || position.x > 7
+      || position.x > 7) {
+      return false;    
+    }
+    else {
+      return true;    
+    }
   }
 
   drawGrid();
