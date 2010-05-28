@@ -35,7 +35,7 @@ function Checkers(board) {
   var SocketUtils = {
     socket: null,
 
-    connect: function (callback) {
+    connect: function () {
       io.setPath('/client/');
       socket = new io.Socket('localhost', {
         rememberTransport: false,
@@ -113,7 +113,6 @@ function Checkers(board) {
     this.getPosition = function () {
       return self.position;
     }
-
 
     // checks if bite move is available 
     // returns position of the checker to bite
@@ -276,12 +275,14 @@ function Checkers(board) {
       }
     });
   }
-
+  
+  // sets next turn
   function setNextTurn() {
     self.currentTurn = (self.currentTurn == self.TURNS[0]) ? self.TURNS[1] : self.TURNS[0];
   }
-
-  var processData = function (obj) {
+  
+  // callback called when client receives message from server
+  var processDataCallback = function (obj) {
     if (obj != undefined && obj.message != undefined) {
       var square = getSquare(obj.message[1].n);
       var checker = getChecker(obj.message[1].o);
@@ -353,11 +354,7 @@ function Checkers(board) {
 
   // helpers
 
-  // TODO clean up
-
-
   function getSquare(position) {
-    // if (!isPositionOnBoard(position)) return null;    
     return $("#square_" + position.x + "_" + position.y).data('square');
   }
 
@@ -365,23 +362,10 @@ function Checkers(board) {
     return getSquare(position).checker;
   }
 
-  function isPositionOnBoard(position) {
-    if (position == null 
-      || position.x < 0 
-      || position.y < 0 
-      || position.x > 7
-      || position.x > 7) {
-      return false;    
-    }
-    else {
-      return true;    
-    }
-  }
-
   drawGrid();
   // subscribe elements 
-  PubSubUtils.subscribe(self.EVENT_DATA_RECEIVED, processData);
-  SocketUtils.connect(processData);
+  PubSubUtils.subscribe(self.EVENT_DATA_RECEIVED, processDataCallback);
+  SocketUtils.connect();
 }
 
 Checkers.init = function (board) {
