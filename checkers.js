@@ -159,7 +159,6 @@ function Checkers(board) {
           moves.push(newPos);
         }
         else {
-          var s = getSquare(newPos);
           // make sure checker has different color
           if(self.checker.isWhite() != s.checker.isWhite()) {
             moves.push(calculatePosition(move, 2, self.getPosition()));
@@ -170,11 +169,11 @@ function Checkers(board) {
     }
     
     // calculates new position
-    // TODO: WTF is value? describe it better 
-    function calculatePosition(move, value, position) {
+    // TODO: WTF is step? describe it better 
+    function calculatePosition(move, step, position) {
       return {
-        "x": move.x * value + position.x, 
-        "y": move.y * value + position.y };
+        "x": move.x * step + position.x, 
+        "y": move.y * step + position.y };
     }
   }
 
