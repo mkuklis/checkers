@@ -1,5 +1,3 @@
-// TODO add change sites, add communication
-
 function Checkers(board) {
 
   var self = this; // reference helper  
@@ -53,6 +51,93 @@ function Checkers(board) {
     }
   };
 
+  // game logic
+
+  var game = {
+    // checks if jump over move is available 
+    // returns position of the checker to remove
+  
+    moves: { 'br': { 'x': 1, 'y': 1 },
+        'bl': { 'x': -1, 'y': 1 },
+        'tr': { 'x': 1, 'y': -1 },
+        'tl': { 'x': -1, 'y': -1 }
+    },
+
+    getJumpOverMove: function(startPos, endPos) {
+      if (Math.abs(startPos.x - endPos.x) == 2) {
+        if (startPos.x > endPos.x && startPos.y > endPos.y) {
+          return this.calculatePosition(this.moves.br, 1, endPos);
+        }
+        else if (startPos.x < endPos.x && startPos.y > endPos.y) {
+          return this.calculatePosition(this.moves.bl, 1, endPos);          
+        }
+        else if (startPos.x < endPos.x && startPos.y < endPos.y) {
+          return this.calculatePosition(this.moves.tl, 1, endPos); 
+        }
+        else if (startPos.x > endPos.x && startPos.y < endPos.y) {
+          return this.calculatePosition(this.moves.tr, 1, endPos);
+        }
+      }
+      return null;
+    },
+
+    // TODO: add queen
+    getPossibleMoves: function (checker) {
+      var m = [];
+      if (checker.isBlack()) { 
+        m = this.getPossiblePosition(this.moves.br, m, checker);
+        m = this.getPossiblePosition(this.moves.tr, m, checker);
+      }
+      else {  
+        m = this.getPossiblePosition(this.moves.tl, m, checker);
+        m = this.getPossiblePosition(this.moves.bl, m, checker);
+      }
+      return m;
+    },
+
+    getPossiblePosition: function(move, moves, checker) {
+      var newPos = this.calculatePosition(move, 1, checker.getPosition());
+      var s = getSquare(newPos);
+      if (s != undefined) { 
+        if (!s.hasChecker()) {
+          moves.push(newPos);
+        }
+        else {
+          // make sure checker has different color
+          if(checker.isWhite() != s.checker.isWhite()) {
+            moves.push(this.calculatePosition(move, 2, checker.getPosition()));
+          }          
+        }    
+      }
+      return moves;
+    },
+
+    // calculates new position
+    calculatePosition: function(move, step, position) {
+      return {
+        "x": move.x * step + position.x, 
+        "y": move.y * step + position.y };
+    },
+
+    // shows possible moves
+    showPossibleMoves: function($checker) {
+      var square = $checker.data("checker").square;
+      var moves = game.getPossibleMoves(square.checker);
+      
+      $.each(moves, function (i, v) {
+        var s = getSquare(v);
+        if (s != null && !s.hasChecker()) {
+          s.highlight();    
+        }
+      });
+    },
+    
+    // sets next turn
+    setNextTurn: function() {
+      self.currentTurn = (self.currentTurn == self.TURNS[0]) ? self.TURNS[1] : self.TURNS[0];
+    }
+  };
+
   // Square constructor
   function Square(x, y) {
     var self = this;
@@ -61,6 +146,7 @@ function Checkers(board) {
       "true": "square_black",
       "false": "square_white"
     };
+
     this.id = "square_" + x + "_" + y;
     this.color = self.COLORS[x % 2 === y % 2];
     this.x = x;
@@ -70,12 +156,6 @@ function Checkers(board) {
       "x": self.x,
       "y": self.y
     };
-
-    this.moves = 
-      { 'br': { 'x': 1, 'y': 1 },
-        'bl': { 'x': -1, 'y': 1 },
-        'tr': { 'x': 1, 'y': -1 },
-        'tl': { 'x': -1, 'y': -1 }};
 
     this.checker = null; // checker
 
@@ -112,68 +192,6 @@ function Checkers(board) {
 
     this.getPosition = function () {
       return self.position;
-    }
-
-    // checks if bite move is available 
-    // returns position of the checker to bite
-    // TODO: this is fucking ugly find some better way
-    this.isBiteMove = function(startPos, endPos) {
-      if (Math.abs(startPos.x - endPos.x) == 2) {
-        if (startPos.x > endPos.x && startPos.y > endPos.y) {
-          return calculatePosition(self.moves.br, 1, endPos);
-        }
-        else if (startPos.x < endPos.x && startPos.y > endPos.y) {
-          return calculatePosition(self.moves.bl, 1, endPos);          
-        }
-        else if (startPos.x < endPos.x && startPos.y < endPos.y) {
-          return calculatePosition(self.moves.tl, 1, endPos); 
-        }
-        else if (startPos.x > endPos.x && startPos.y < endPos.y) {
-          return calculatePosition(self.moves.tr, 1, endPos);
-        }
-      }
-      return null;
-    }
-
-    // TODO: add queen/remove
-    this.getPossibleMoves = function () {
-      var moves = [];
-      if (self.checker.isBlack()) { 
-        moves = getPossiblePosition(self.moves.br, moves);
-        moves = getPossiblePosition(self.moves.tr, moves);
-      }
-      else {  
-        moves = getPossiblePosition(self.moves.tl, moves);
-        moves = getPossiblePosition(self.moves.bl, moves);
-      }
-      return moves;
-    }
-    
-    // private 
-
-    function getPossiblePosition(move, moves) {
-      var newPos = calculatePosition(move, 1, self.getPosition());
-      var s = getSquare(newPos);
-      if (s != undefined) { 
-        if (!s.hasChecker()) {
-          moves.push(newPos);
-        }
-        else {
-          // make sure checker has different color
-          if(self.checker.isWhite() != s.checker.isWhite()) {
-            moves.push(calculatePosition(move, 2, self.getPosition()));
-          }          
-        }    
-      }
-      return moves;
-    }
-    
-    // calculates new position
-    // TODO: WTF is step? describe it better 
-    function calculatePosition(move, step, position) {
-      return {
-        "x": move.x * step + position.x, 
-        "y": move.y * step + position.y };
     }
   }
 
@@ -262,24 +280,6 @@ function Checkers(board) {
     }
   }
 
-  // shows possible moves
-  function showPossibleMoves($checker) {
-    var square = $checker.data("checker").square;
-    var moves = square.getPossibleMoves();
-    
-    $.each(moves, function (i, v) {
-      var s = getSquare(v);
-      if (s != null && !s.hasChecker()) {
-        s.highlight();    
-      }
-    });
-  }
-  
-  // sets next turn
-  function setNextTurn() {
-    self.currentTurn = (self.currentTurn == self.TURNS[0]) ? self.TURNS[1] : self.TURNS[0];
-  }
-  
   // callback called when client receives message from server
   var processDataCallback = function (obj) {
     if (obj != undefined && obj.message != undefined) {
@@ -291,12 +291,13 @@ function Checkers(board) {
   }
 
   // register events
+
   // TODO use publish / subcribe
   $('.checker').live("mouseover", function () {
     var checker = $(this).data("checker");
     if (self.currentChecker == null 
       && checker.isActiveTurn(self.currentTurn)) {
-      showPossibleMoves($(this));
+      game.showPossibleMoves($(this));
     }
   });
 
@@ -311,7 +312,7 @@ function Checkers(board) {
     if (checker.isMovePossible(self.currentChecker, self.currentTurn)) {
       $('.square').removeClass('square_highlighted');
       checker.square.highlight();
-      showPossibleMoves($(this));
+      game.showPossibleMoves($(this));
       self.currentChecker = checker;
     }
     else {
@@ -333,7 +334,7 @@ function Checkers(board) {
         "o": self.currentChecker.getPosition()
       };
 
-      var p = square.isBiteMove(self.currentChecker.getPosition(), square.getPosition());
+      var p = game.getJumpOverMove(self.currentChecker.getPosition(), square.getPosition());
       
       if (p != null) {
           // square with checker to remove
@@ -345,7 +346,7 @@ function Checkers(board) {
       SocketUtils.send(m);
     
       self.currentChecker.moveTo(square);
-      setNextTurn();
+      game.setNextTurn();
       self.currentChecker = null;
       $('.square').removeClass('square_highlighted');
     }
@@ -362,6 +363,7 @@ function Checkers(board) {
   }
 
   drawGrid();
+
   // subscribe elements 
   PubSubUtils.subscribe(self.EVENT_DATA_RECEIVED, processDataCallback);
   SocketUtils.connect();
