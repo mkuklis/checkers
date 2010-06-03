@@ -1,3 +1,16 @@
+/**
+* Checkers  v0.0.1
+* http://github.com/mkuklis/fcmanager
+*
+*
+* Copyright (c) 2010 Michal Kuklis
+* Dual licensed under the MIT and GPL licenses:
+* http://www.opensource.org/licenses/mit-license.php
+* http://www.gnu.org/licenses/gpl.htmlc
+*
+* 06/02/2010
+*/
+
 function Checkers(board) {
 
   var self = this; // reference helper  
