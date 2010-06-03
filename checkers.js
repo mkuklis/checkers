@@ -1,6 +1,6 @@
 /**
 * Checkers  v0.0.1
-* http://github.com/mkuklis/fcmanager
+* http://github.com/mkuklis/checkers
 *
 *
 * Copyright (c) 2010 Michal Kuklis
