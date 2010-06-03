@@ -53,16 +53,15 @@ function Checkers(board) {
 
   // game logic
 
-  var game = {
-    // checks if jump over move is available 
-    // returns position of the checker to remove
-  
+  var game = {  
     moves: { 'br': { 'x': 1, 'y': 1 },
         'bl': { 'x': -1, 'y': 1 },
         'tr': { 'x': 1, 'y': -1 },
         'tl': { 'x': -1, 'y': -1 }
     },
 
+    // checks if jump over move is available 
+    // returns position of the checker to remove
     getJumpOverMove: function(startPos, endPos) {
       if (Math.abs(startPos.x - endPos.x) == 2) {
         if (startPos.x > endPos.x && startPos.y > endPos.y) {
